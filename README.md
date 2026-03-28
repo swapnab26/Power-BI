@@ -52,6 +52,8 @@ The solution demonstrates the complete lifecycle of data — from ingestion and 
 ## 📸 Dashboard Preview
 <img width="835" height="502" alt="image" src="https://github.com/user-attachments/assets/66b534ea-069f-4a1c-b9fe-ec0fc4b89861" />
 <img width="851" height="513" alt="image" src="https://github.com/user-attachments/assets/1bae5b78-bfa3-4341-8429-a5d6ae45ff0b" />
+<img width="1282" height="565" alt="image" src="https://github.com/user-attachments/assets/930687c8-d019-4cdd-83fd-16853e699588" />
+
 
 Example:
 * Sales Overview Dashboard
