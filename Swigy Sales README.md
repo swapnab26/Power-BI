@@ -61,15 +61,8 @@ Example:
 * Monthly-Trend/Week Trend/ Quarter
 
 ## 📁 Repository Contents
-* `Swiggy_Sales_Report.pbix` → Power BI dashboard file
 * `/screenshots` → Dashboard images
 * `README.md` → Project documentation
----
-
-## 🚀 How to Use
-1. Download the `.pbix` file from this repository
-2. Open it using Microsoft Power BI Desktop
-3. Explore the interactive dashboard and insights
 ---
 
 ## 💡 Key Highlights
