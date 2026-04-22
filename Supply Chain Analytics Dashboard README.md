@@ -1,6 +1,9 @@
 **📦 Supply Chain Analytics Dashboard
+
 Tools: Python · SQL · Power BI
+
 Domain: Supply Chain & Logistics
+
 Type: End-to-End Analytics Project**
 
 Why I Built This
@@ -9,22 +12,29 @@ I wanted to build something that didn't just display numbers but actually helped
 So I took a raw CSV, cleaned it up in Python, modeled it in SQL, and built a 3-page Power BI dashboard that tracks orders, carrier performance,
 and delay patterns — all linked with drill-throughs and bookmark navigation.
 
-**Dashboard Preview**
+**Dashboard Preview **
+
 Overview Page 
 <img width="1104" height="561" alt="image" src="https://github.com/user-attachments/assets/728b36e3-eddf-462d-8982-db0701a91f99" />
 - High-level KPIs, monthly order trends, carrier performance, and category contribution — all in one view.
+  
 Order Details Page
 <img width="1102" height="562" alt="image" src="https://github.com/user-attachments/assets/b883a8c4-f425-4876-967a-4b8e761bcc4f" />
 - Drill-through from any carrier bar to see order-level breakdown, delivery performance, and cost metrics.
+  
 Delay Analysis Page
 <img width="1083" height="558" alt="image" src="https://github.com/user-attachments/assets/9140d8cc-820b-4359-9467-9720f2d93296" />
 - Supplier-level delay tracking with country and year filters - point exactly where the delays are coming from.
 
-*How it works*
+**How it works**
+
 Raw messy Data - > Python (ETL) -> SQL -> Power BI 
 
 *1.Python ETL *
+
 The raw data from excel has null values, inconsistent order date formats, countries, blank values and no calculated columns. Hers's what I did  to clean up .
+
+```python
 
 import pandas as pd
 import numpy as np
@@ -85,11 +95,13 @@ df['quantity'] = df['quantity'].fillna(1).astype(int)
 #12. Create 2 new columns
 df['total_cost'] = df['unit_cost'] * df['quantity']
 df['order_year'] = df['order_date'].dt.year
-
+```
 
 **2. SQL Views **
+
 After clean data was loaded into the database, used a CTE with LAG() window function to calculate Month over Month spend growth % — connected directly to Power BI for the MoM trend visual.
 
+```SQL
 -- View 1: Created Month Spend (MOM) using LAG function and as CTE
 CREATE VIEW `supply_chain`.`v_supply_chain_performance` AS
 WITH `monthlyspend` AS (
@@ -151,8 +163,12 @@ CREATE VIEW `supply_chain`.`dim_suppliers` AS
             AND (`supply_chain`.`stg_supply_chain`.`supplier_id` <> ''))
     GROUP BY TRIM(UPPER(`supply_chain`.`stg_supply_chain`.`supplier_id`))
 
+```
+
 **3. Power BI — DAX Measures**
 The dashboard uses several custom DAX measures for dynamic KPIs and conditional formatting
+
+```POWER BI
 
 -- Year over Year Orders Growth
 Orders YoY% = 
@@ -183,9 +199,12 @@ FIRSTNONBLANK(
         )
     ),
 1)
+```
 
 **Dashboard Features**
+
 **Overview Page**
+
 4 KPI cards with conditional formatting (green/red based on performance)
 Monthly orders trend — 2023 vs 2024 comparison
 Orders by carrier with YoY delta labels
@@ -193,6 +212,7 @@ Category contribution clustered bar chart
 Country and Carrier slicers
 
 **Order Details Page (Drill-through from Carrier chart)**
+
 Automatically filters to selected carrier
 KPIs: Total Orders, Avg Order Value, Delay Rate, On-Time Rate
 Orders over time line chart
