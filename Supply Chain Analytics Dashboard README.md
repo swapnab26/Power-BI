@@ -20,10 +20,10 @@ Delay Analysis Page
 <img width="1083" height="558" alt="image" src="https://github.com/user-attachments/assets/9140d8cc-820b-4359-9467-9720f2d93296" />
 - Supplier-level delay tracking with country and year filters - point exactly where the delays are coming from.
 
-**How it works**
+*How it works*
 Raw messy Data - > Python (ETL) -> SQL -> Power BI 
 
-**1.Python ETL **
+*1.Python ETL *
 The raw data from excel has null values, inconsistent order date formats, countries, blank values and no calculated columns. Hers's what I did  to clean up .
 
 import pandas as pd
