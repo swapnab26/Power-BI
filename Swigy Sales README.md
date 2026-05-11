@@ -44,10 +44,8 @@ The solution demonstrates the complete lifecycle of data — from ingestion and 
 
 ---
 ## 📈 Key Insights
-* Identified top-performing cities based on order volume and revenue
-* Evaluated restaurant performance and category-wise contribution
-* Highlighted key KPIs such as total sales, total Orders, Monthly trend , Quarter Trend and also Week Trend.
-  
+- Sales dipped 8.2% in February (₹6.83M → ₹6.27M) 
+- Karnataka led all states with ₹5.5M in total sales
 ---
 ## 📸 Dashboard Preview
 <img width="835" height="502" alt="image" src="https://github.com/user-attachments/assets/66b534ea-069f-4a1c-b9fe-ec0fc4b89861" />
