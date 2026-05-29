@@ -7,10 +7,10 @@ Accounts Receivable and Credit Risk management is one of the most data-intensive
 So I took a multi-sheet Excel dataset, cleaned it in Python, modeled it in PostgreSQL with proper fact/dimension schema, and built a 6-page Power BI dashboard covering everything from executive summaries to customer-level drill throughs.
 
 **Technical Stack**
-Python (pandas, SQLAlchemy) — data cleaning and pipeline automation
-PostgreSQL — data modeling, views, stored procedures
-Power BI — dashboard, DAX measures, RLS, field parameters
-Windows Task Scheduler — automated pipeline scheduling
+1) Python (pandas, SQLAlchemy) — data cleaning and pipeline automation
+2) PostgreSQL — data modeling, views, stored procedures
+3) Power BI — dashboard, DAX measures, RLS, field parameters
+4) Windows Task Scheduler — automated pipeline scheduling
 
 **Data Challenges & How I Handled Them**
 1) 51% missing Tax IDs — investigated distribution across regions and countries, confirmed random missingness, dropped column as not analytically useful.
@@ -24,8 +24,10 @@ Windows Task Scheduler — automated pipeline scheduling
 Excel (5 sheets) → Python Cleaning → PostgreSQL -> Power BI -> Service 
 
 **Dashboard Preview **
+
 Executive Summary Page
-<img width="1146" height="574" alt="image" src="https://github.com/user-attachments/assets/ec7cd99d-c14a-4af7-a1dc-c3aa119ff82a" />
+
+<img width="1057" height="547" alt="image" src="https://github.com/user-attachments/assets/99998d3f-312c-4071-a889-a36075c5b092" />
 
 4 KPI cards with YoY comparison and sparklines
 Treemap — outstanding balance by region
