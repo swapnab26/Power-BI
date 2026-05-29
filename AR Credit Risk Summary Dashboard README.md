@@ -1,16 +1,36 @@
-** AR Credit Risk Summary Dashboard
-
-Tools: Python · SQL · Power BI
+<img width="1146" height="574" alt="image" src="https://github.com/user-attachments/assets/8f33b889-b213-4bc9-83a3-5ce2f3fea57e" />** AR Credit Risk Summary Dashboard
 
 Domain: Credit & AR Risk Summary
 
-Type: End-to-End Analytics Project**
+Why I Built This
+Accounts Receivable and Credit Risk management is one of the most data-intensive functions in any enterprise — hundreds of customers, thousands of invoices, multiple collection touchpoints, and credit reviews happening simultaneously. I wanted to build an end-to-end pipeline that didn't just visualize data but actually replicated how a real AR team operates — from raw Excel sheets to a production-ready dashboard with automated refresh.
+So I took a multi-sheet Excel dataset, cleaned it in Python, modeled it in PostgreSQL with proper fact/dimension schema, and built a 6-page Power BI dashboard covering everything from executive summaries to customer-level drill throughs.
 
-Why I Built This Credit and AR Risk Metrics is - to get overview of Credit and AR risks for the clients. I wanted to build something that didn't just display numbers but actually helped someone make a decision in under 30 seconds. So I took an Excel, cleaned it up in Python, modeled it in SQL, and built a 6-page Power BI dashboard that tracks the outstanding balances,  Average DSO , aging buckets, total invoices, and collections  — all linked with drill-throughs and bookmark navigation.
+**Technical Stack**
+Python (pandas, SQLAlchemy) — data cleaning and pipeline automation
+PostgreSQL — data modeling, views, stored procedures
+Power BI — dashboard, DAX measures, RLS, field parameters
+Windows Task Scheduler — automated pipeline scheduling
+
+**Data Challenges & How I Handled Them**
+51% missing Tax IDs — investigated distribution across regions and countries, confirmed random missingness, dropped column as not analytically useful
+Risk Category inconsistency — data had both High and High Risk as separate values. Identified in Power BI model view, fixed in PostgreSQL using UPDATE CASE WHEN, and added str.replace() in Python pipeline to prevent recurrence
+Paid invoices with missing payment dates — instead of imputing dates (which would fabricate financial data), created a payment_date_missing_flag column to track these 176 records as a data quality issue
+Invoice ID duplicates — discovered same invoice assigned to multiple customers under same parent company. Implemented composite primary key (invoice_id + customer_id) instead of dropping records
+Region/Country mismatch — synthetic data had incorrect region assignments (e.g. China mapped to North America). Documented as data quality observation rather than overriding source data
+Collections to Invoices foreign key failure — 71% of collection records couldn't be matched to invoices via composite key due to parent/subsidiary billing structure. Documented as source system issue, maintained relationship through customer_id only
+
+**Pipeline Architecture**
+Excel (5 sheets) → Python Cleaning → PostgreSQL -> Power BI -> Service 
 
 **Dashboard Preview **
-
-Executive Summary Page image
+Executive Summary Page
+<img width="1146" height="574" alt="image" src="https://github.com/user-attachments/assets/ec7cd99d-c14a-4af7-a1dc-c3aa119ff82a" />
+4 KPI cards with YoY comparison and sparklines
+Treemap — outstanding balance by region
+Waterfall chart — invoice breakdown by payment status
+Line chart — invoice vs collection trend by month
+Dynamic slicers — Year, Region, Risk Category, Customer Segment
 
 High-level KPIs, Average DSO, Total Invoices Amount , Total Collection, Total Outstanding  — all in one view.
 Invoice Summary Page image
