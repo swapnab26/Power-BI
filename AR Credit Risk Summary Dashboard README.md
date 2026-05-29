@@ -81,7 +81,7 @@ Automated schedule every hour using schedule library
 Error handling with try/except logging
 if_exists='replace' with CASCADE for clean reloads.
 
-
+```python
 
 import pandas as pd
 import importlib
@@ -89,7 +89,6 @@ import schedule
 print(schedule.__file__)
 from sqlalchemy import create_engine
 import time
-
 def run_pipeline():
     try:
         print('pipeline started:')
@@ -136,7 +135,7 @@ schedule.every(1).hours.do(run_pipeline)
 while True:
     schedule.run_pending()
     time.sleep(60)
-
+```
 
 **PostgreSQL Data Model**
 
@@ -144,6 +143,8 @@ Fact tables — invoices, collections, credit_reviews
 Dimension table — customers
 Views — customer_invoice_summary, customer_collection_summary, customer_credit_summary, customer_master_summary
 Stored Procedure — update_risk_category() dynamically updates risk categories based on latest credit score using ROW_NUMBER() window function
+
+```SQL
 
 -- Views -- 
 
@@ -215,9 +216,11 @@ BEGIN
 	WHERE cr.customer_id = c.customer_id ;
 END;
 $$;
-   
+   ```
+
 3. Power BI — DAX Measures The dashboard uses several custom DAX measures for dynamic KPIs and conditional formatting
 
+```Power BI
 YoY Invoice Growth = 
     var CurrentYear = [Total Invoice Amount]
     var LastYear = [Last Year Invoice Amount]
@@ -227,19 +230,28 @@ YoY Invoice Growth =
 Paid Invoices Count = COUNTROWS
     (FILTER('fact invoices', 
     'fact invoices'[payment_status] = "Paid"))
+```
 
 **Key Insights From the Data **
 
 90+ day overdue accounts for 85-90% of outstanding balance across all regions — critical collections problem affecting every region equally
+
 Average DSO of 97 days — significantly above the 30-day industry benchmark, indicating serious collection inefficiency
+
 Recovery rate at 55.11% — below the 75% target, meaning nearly half of overdue amounts are not being recovered
+
 335 escalated customers — high escalation volume suggesting frontline collections is struggling
+
 Credit utilization exceeding 100% detected in high risk customers — customers borrowing beyond their approved limits
+
 Automotive industry has highest overdue invoice count (153) — industry specific credit risk worth monitoring
+
 Credit scores barely differentiated by risk category (Low: 584, High: 582, Medium: 575) — suggesting risk categorization may need recalibration
 
 **RLS Implementation**
 
 Dynamic Row Level Security using USERPRINCIPALNAME() and LOOKUPVALUE()
+
 Regional Manager role filters data by assigned region from Security_RLS_Table
+
 Tested in Power BI Desktop and published to Service
