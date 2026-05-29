@@ -1,4 +1,4 @@
-<img width="1146" height="574" alt="image" src="https://github.com/user-attachments/assets/8f33b889-b213-4bc9-83a3-5ce2f3fea57e" />** AR Credit Risk Summary Dashboard
+** AR Credit Risk Summary Dashboard **
 
 Domain: Credit & AR Risk Summary
 
@@ -13,12 +13,12 @@ Power BI — dashboard, DAX measures, RLS, field parameters
 Windows Task Scheduler — automated pipeline scheduling
 
 **Data Challenges & How I Handled Them**
-51% missing Tax IDs — investigated distribution across regions and countries, confirmed random missingness, dropped column as not analytically useful
-Risk Category inconsistency — data had both High and High Risk as separate values. Identified in Power BI model view, fixed in PostgreSQL using UPDATE CASE WHEN, and added str.replace() in Python pipeline to prevent recurrence
-Paid invoices with missing payment dates — instead of imputing dates (which would fabricate financial data), created a payment_date_missing_flag column to track these 176 records as a data quality issue
-Invoice ID duplicates — discovered same invoice assigned to multiple customers under same parent company. Implemented composite primary key (invoice_id + customer_id) instead of dropping records
-Region/Country mismatch — synthetic data had incorrect region assignments (e.g. China mapped to North America). Documented as data quality observation rather than overriding source data
-Collections to Invoices foreign key failure — 71% of collection records couldn't be matched to invoices via composite key due to parent/subsidiary billing structure. Documented as source system issue, maintained relationship through customer_id only
+1) 51% missing Tax IDs — investigated distribution across regions and countries, confirmed random missingness, dropped column as not analytically useful.
+2) Risk Category inconsistency — data had both High and High Risk as separate values. Identified in Power BI model view, fixed in PostgreSQL using UPDATE CASE WHEN, and added str.replace() in Python pipeline to prevent recurrence
+3) Paid invoices with missing payment dates — instead of imputing dates (which would fabricate financial data), created a payment_date_missing_flag column to track these 176 records as a data quality issue
+4) Invoice ID duplicates — discovered same invoice assigned to multiple customers under same parent company. Implemented composite primary key (invoice_id + customer_id) instead of dropping records
+5) Region/Country mismatch — synthetic data had incorrect region assignments (e.g. China mapped to North America). Documented as data quality observation rather than overriding source data
+6) Collections to Invoices foreign key failure — 71% of collection records couldn't be matched to invoices via composite key due to parent/subsidiary billing structure. Documented as source system issue, maintained relationship through customer_id only
 
 **Pipeline Architecture**
 Excel (5 sheets) → Python Cleaning → PostgreSQL -> Power BI -> Service 
@@ -26,6 +26,7 @@ Excel (5 sheets) → Python Cleaning → PostgreSQL -> Power BI -> Service
 **Dashboard Preview **
 Executive Summary Page
 <img width="1146" height="574" alt="image" src="https://github.com/user-attachments/assets/ec7cd99d-c14a-4af7-a1dc-c3aa119ff82a" />
+
 4 KPI cards with YoY comparison and sparklines
 Treemap — outstanding balance by region
 Waterfall chart — invoice breakdown by payment status
