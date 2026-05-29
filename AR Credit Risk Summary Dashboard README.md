@@ -81,6 +81,7 @@ Automated schedule every hour using schedule library
 Error handling with try/except logging
 if_exists='replace' with CASCADE for clean reloads.
 
+
 import pandas as pd
 import importlib
 import schedule
@@ -93,42 +94,33 @@ def run_pipeline():
         print('pipeline started:')
         FILE_PATH = 'C:/Users/SWAPNA RAVULA/Downloads/enterprise_ar_credit_risk_dataset.xlsx'
         DB_connection = 'postgresql+psycopg2://postgres:root@localhost:5432/ar_credit_risk'
-
         engine = create_engine(DB_connection)
-
         customers = pd.read_excel(FILE_PATH, sheet_name = 'Customers_Master')
         invoices = pd.read_excel(FILE_PATH, sheet_name = 'Invoices_Fact')
         credit_reviews = pd.read_excel(FILE_PATH, sheet_name = 'Credit_Reviews')
         collections = pd.read_excel(FILE_PATH, sheet_name = 'Collections_Transactions')
         rls = pd.read_excel(FILE_PATH, sheet_name = 'Security_RLS_Table')
-
         print('sheets loaded successfully')
         #clean columns
         for df in [customers, invoices, credit_reviews, collections , rls]:
             df.columns = df.columns.str.lower()
-
         #clean customers
         customers['state'] = customers['state'].fillna('N/A')
         customers['risk_category'] = customers['risk_category'].str.replace(' Risk', '')
-
-
         #drop the tax_id
         customers = customers.drop(columns=['tax_id'])
         #fill it with unknown for now , later merge with credit reviews table
         customers['risk_category'] = customers['risk_category'].fillna('Unknown')
-
         #clean invoices
         invoices['payment_date_missing_flag'] = (
             (invoices['payment_status'] == 'Paid') &
             (invoices['payment_date'].isnull())
         ).astype(int)
-
-        #clean credit_reviews
+     #clean credit_reviews
         credit_reviews['credit_score'] = credit_reviews.groupby('risk_level')['credit_score'].transform(
             lambda x: x.fillna(x.median())
         )
         print('cleaning complete')
-
         customers.to_sql('customers',engine, schema='dim',if_exists='replace', index=False)
         invoices.to_sql('invoices',engine,schema ='fact',if_exists='replace', index=False)
         credit_reviews.to_sql('credit_reviews',engine,schema='fact',if_exists='replace', index=False)
@@ -137,10 +129,8 @@ def run_pipeline():
         print('pipeline completed')
     except Exception as e:
         print(f'Pipeline failed: {e}')
-
-#schedule it
+  #schedule it
 schedule.every(1).hours.do(run_pipeline)
-
 # keep the script running
 while True:
     schedule.run_pending()
