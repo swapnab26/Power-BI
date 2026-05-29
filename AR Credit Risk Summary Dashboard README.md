@@ -77,179 +77,178 @@ Raw messy Data - > Python (ETL) -> SQL -> Power BI
 
 *1.Python ETL *
 
-The raw data from excel has null values, inconsistent order date formats, countries, blank values and no calculated columns. Hers's what I did to clean up .
+Automated schedule every hour using schedule library
+Error handling with try/except logging
+if_exists='replace' with CASCADE for clean reloads.
 
 import pandas as pd
-import numpy as np
+import importlib
+import schedule
+print(schedule.__file__)
+from sqlalchemy import create_engine
+import time
 
-# 1. Load the file 
-df = pd.read_excel('messy_supply_chain_data.xlsx')
-df.columns = df.columns.str.strip().str.lower().str.replace(' ', '_')
+def run_pipeline():
+    try:
+        print('pipeline started:')
+        FILE_PATH = 'C:/Users/SWAPNA RAVULA/Downloads/enterprise_ar_credit_risk_dataset.xlsx'
+        DB_connection = 'postgresql+psycopg2://postgres:root@localhost:5432/ar_credit_risk'
 
-# 2. Identify where IDs are missing
-is_blank = df['order_id'].isna()
+        engine = create_engine(DB_connection)
 
-# 3. Create unique IDs for those specific rows
-# We use the row index to make sure every "Unknown" is unique
-df.loc[is_blank, 'order_id'] = [f"UNKNOWN_{i}" for i in df.index[is_blank]]
+        customers = pd.read_excel(FILE_PATH, sheet_name = 'Customers_Master')
+        invoices = pd.read_excel(FILE_PATH, sheet_name = 'Invoices_Fact')
+        credit_reviews = pd.read_excel(FILE_PATH, sheet_name = 'Credit_Reviews')
+        collections = pd.read_excel(FILE_PATH, sheet_name = 'Collections_Transactions')
+        rls = pd.read_excel(FILE_PATH, sheet_name = 'Security_RLS_Table')
 
-# 4. Remove ONLY rows that are 100% identical across all columns
-df = df.drop_duplicates()
+        print('sheets loaded successfully')
+        #clean columns
+        for df in [customers, invoices, credit_reviews, collections , rls]:
+            df.columns = df.columns.str.lower()
 
-# 5. Mapping and replacing the Country values with appropriate values
-country_map = {'usa': 'USA', 'U.S.A.': 'USA', 'United States': 'USA', 'US': 'USA',
-    'de': 'Germany', 'DE': 'Germany', 'aus': 'Australia', 'AUS': 'Australia',
-    'india': 'India'}
-df['country']= df['country'].replace(country_map)
+        #clean customers
+        customers['state'] = customers['state'].fillna('N/A')
+        customers['risk_category'] = customers['risk_category'].str.replace(' Risk', '')
 
-# 6. Cleaning and standardizing Supplier_name and Product_category column
-df['supplier_name'] = df['supplier_name'].str.title()
-df['product_category'] = df['product_category'].str.title()
 
-#7. First we drop the supplier_id, then we map the supplier id with the supplier name.
-id_lookup = df.dropna(subset=['supplier_id']).set_index('supplier_name')['supplier_id'].to_dict()
+        #drop the tax_id
+        customers = customers.drop(columns=['tax_id'])
+        #fill it with unknown for now , later merge with credit reviews table
+        customers['risk_category'] = customers['risk_category'].fillna('Unknown')
 
-# Fill the missing supplier_ids using the map
-df['supplier_id'] = df['supplier_id'].fillna(df['supplier_name'].map(id_lookup))
+        #clean invoices
+        invoices['payment_date_missing_flag'] = (
+            (invoices['payment_status'] == 'Paid') &
+            (invoices['payment_date'].isnull())
+        ).astype(int)
 
-# 8. Convert using format='mixed'
-# This tells Pandas: "Some are 20/09/2023, some are Jan 17, 2023. Figure it out."
-df['order_date'] = pd.to_datetime(df['order_date'], format='mixed', dayfirst=True, errors='coerce')
+        #clean credit_reviews
+        credit_reviews['credit_score'] = credit_reviews.groupby('risk_level')['credit_score'].transform(
+            lambda x: x.fillna(x.median())
+        )
+        print('cleaning complete')
 
-#9. Remove leading /trailing spaces in the supplier_name columns
-df['supplier_name'] = df['supplier_name'].str.strip()
+        customers.to_sql('customers',engine, schema='dim',if_exists='replace', index=False)
+        invoices.to_sql('invoices',engine,schema ='fact',if_exists='replace', index=False)
+        credit_reviews.to_sql('credit_reviews',engine,schema='fact',if_exists='replace', index=False)
+        collections.to_sql('collections',engine,schema='fact',if_exists='replace', index=False)
+        print('All tables loaded successfully')
+        print('pipeline completed')
+    except Exception as e:
+        print(f'Pipeline failed: {e}')
 
-#10. Removes symbols and converts to string
-df['unit_cost'] = df['unit_cost'].astype(str).str.replace('$', '').str.replace(',', '')
-# Force to numeric (floats)
-df['unit_cost'] = pd.to_numeric(df['unit_cost'], errors='coerce')
-# Filling missing values with grou by Median of product Category
-df['unit_cost'] = df['unit_cost'].fillna(df.groupby('product_category')['unit_cost'].transform('median'))
-# If any are STILL null (because a whole category was missing costs), fill with 0
-df['unit_cost'] = df['unit_cost'].fillna(0)
+#schedule it
+schedule.every(1).hours.do(run_pipeline)
 
-#11. Convert Quantity to numeric
-df['quantity'] = pd.to_numeric(df['quantity'], errors='coerce')
-#Fix negative quantities
-df['quantity'] = df['quantity'].abs()
-#Fill missing quantities with 1
-df['quantity'] = df['quantity'].fillna(1).astype(int)
+# keep the script running
+while True:
+    schedule.run_pending()
+    time.sleep(60)
 
-#12. Create 2 new columns
-df['total_cost'] = df['unit_cost'] * df['quantity']
-df['order_year'] = df['order_date'].dt.year
-**2. SQL Views **
 
-After clean data was loaded into the database, used a CTE with LAG() window function to calculate Month over Month spend growth % — connected directly to Power BI for the MoM trend visual.
+**PostgreSQL Data Model**
 
--- View 1: Created Month Spend (MOM) using LAG function and as CTE
-CREATE VIEW `supply_chain`.`v_supply_chain_performance` AS
-WITH `monthlyspend` AS (
-    SELECT 
-        DATE_FORMAT(`order_date`, '%Y-%m') AS `order_month`,
-        ROUND(SUM(`total_cost`), 2) AS `current_spend`
-    FROM `supply_chain`.`stg_supply_chain`
-    GROUP BY DATE_FORMAT(`order_date`, '%Y-%m')
+Fact tables — invoices, collections, credit_reviews
+Dimension table — customers
+Views — customer_invoice_summary, customer_collection_summary, customer_credit_summary, customer_master_summary
+Stored Procedure — update_risk_category() dynamically updates risk categories based on latest credit score using ROW_NUMBER() window function
+
+-- Views -- 
+
+CREATE VIEW dim.customer_credit_summary AS
+WITH latest_reviews AS (
+    SELECT *,
+        ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY review_date DESC) AS rn
+    FROM fact.credit_reviews
 )
 SELECT 
-    `order_month`,
-    `current_spend`,
-    LAG(`current_spend`) OVER (ORDER BY `order_month`) AS `previous_spend`,
-    ROUND((`current_spend` - LAG(`current_spend`) OVER (ORDER BY `order_month`)), 2) AS `dollar_diff`,
-    ROUND((((`current_spend` - LAG(`current_spend`) OVER (ORDER BY `order_month`)) 
-        / LAG(`current_spend`) OVER (ORDER BY `order_month`)) * 100), 2) AS `spend_growth_pct`
-FROM `monthlyspend`
+    c.customer_id,
+    c.customer_name,
+    lr.internal_risk_rating,
+    lr.credit_score,
+    lr.external_risk_score,
+    lr.approval_status,
+    lr.risk_level,
+    lr.requested_credit_limit,
+    lr.approved_credit_limit
+FROM dim.customers c
+JOIN latest_reviews lr ON c.customer_id = lr.customer_id
+WHERE lr.rn = 1
 
--- View 2: Fact Order Table 
-CREATE VIEW `supply_chain`.`fact_orders` AS
-    SELECT 
-        `supply_chain`.`stg_supply_chain`.`order_id` AS `order_id`,
-        `supply_chain`.`stg_supply_chain`.`supplier_id` AS `supplier_id`,
-        `supply_chain`.`stg_supply_chain`.`product_id` AS `product_id`,
-        `supply_chain`.`stg_supply_chain`.`order_status` AS `order_status`,
-        `supply_chain`.`stg_supply_chain`.`order_date` AS `order_date`,
-        `supply_chain`.`stg_supply_chain`.`shipment_carrier` AS `shipment_carrier`,
-        CAST(`supply_chain`.`stg_supply_chain`.`unit_cost`
-            AS DECIMAL (10 , 2 )) AS `unit_cost`,
-        `supply_chain`.`stg_supply_chain`.`quantity` AS `quantity`,
-        ROUND((`supply_chain`.`stg_supply_chain`.`unit_cost` * `supply_chain`.`stg_supply_chain`.`quantity`),
-                2) AS `total_cost`
-    FROM
-        `supply_chain`.`stg_supply_chain`
+2) CREATE VIEW  dim.customer_master_summary AS
+SELECT 
+    cs.customer_id,
+    cs.customer_name,
+    -- invoice summary
+    cs.total_amount,
+    cs.outstanding_balance,
+    cs.paid_invoices,
+    cs.overdue,
+    cs.open_invoices,
+    cs.partial_invoices,
+    -- collection summary
+    cc.total_collection_amount,
+    cc.avg_recovery_percentage,
+    cc.collected_payments,
+    cc.partial_payments,
+    cc.promise_to_pay,
+    cc.escalated_payments,
+    -- credit summary
+    customer_credit.credit_score,
+    customer_credit.risk_level,
+    customer_credit.internal_risk_rating,
+    customer_credit.approval_status,
+    customer_credit.requested_credit_limit,
+    customer_credit.approved_credit_limit
+FROM dim.customers_invoice_summary cs
+LEFT JOIN dim.customers_collection_summary cc ON cs.customer_id = cc.customer_id
+LEFT JOIN dim.customer_credit_summary customer_credit ON cs.customer_id = customer_credit.customer_id
 
--- View 3: Dimension Product Table 
-CREATE VIEW `supply_chain`.`dim_products` AS
-    SELECT 
-        TRIM(UPPER(`supply_chain`.`stg_supply_chain`.`product_id`)) AS `product_id`,
-        ANY_VALUE(`supply_chain`.`stg_supply_chain`.`product_category`) AS `product_category`,
-        ANY_VALUE(`supply_chain`.`stg_supply_chain`.`product_name`) AS `product_name`
-    FROM
-        `supply_chain`.`stg_supply_chain`
-    WHERE
-        ((`supply_chain`.`stg_supply_chain`.`product_id` IS NOT NULL)
-            AND (`supply_chain`.`stg_supply_chain`.`product_id` <> ''))
-    GROUP BY TRIM(UPPER(`supply_chain`.`stg_supply_chain`.`product_id`))
-    
--- View 4 : Dimension Supplier Table 
-CREATE VIEW `supply_chain`.`dim_suppliers` AS
-    SELECT 
-        TRIM(UPPER(`supply_chain`.`stg_supply_chain`.`supplier_id`)) AS `supplier_id`,
-        ANY_VALUE(`supply_chain`.`stg_supply_chain`.`supplier_name`) AS `supplier_name`,
-        ANY_VALUE(`supply_chain`.`stg_supply_chain`.`country`) AS `country`
-    FROM
-        `supply_chain`.`stg_supply_chain`
-    WHERE
-        ((`supply_chain`.`stg_supply_chain`.`supplier_id` IS NOT NULL)
-            AND (`supply_chain`.`stg_supply_chain`.`supplier_id` <> ''))
-    GROUP BY TRIM(UPPER(`supply_chain`.`stg_supply_chain`.`supplier_id`))
+-- Stored Procedure -- 
+CREATE OR REPLACE PROCEDURE update_risk_category()
+language plpgsql
+as $$
+BEGIN 
+	update dim.customers c
+	SET risk_category = 
+	CASE WHEN cr.credit_score < 500 THEN 'High Risk'
+	WHEN cr.credit_score between 500 AND 700 THEN 'Medium Risk'
+	ELSE 'Low Risk'
+	END
+	FROM (
+		SELECT DISTINCT ON(customer_id) customer_id , credit_score
+		FROM fact.credit_reviews 
+		ORDER BY customer_id, review_date DESC
+		) cr
+	WHERE cr.customer_id = c.customer_id ;
+END;
+$$;
+   
 3. Power BI — DAX Measures The dashboard uses several custom DAX measures for dynamic KPIs and conditional formatting
 
+YoY Invoice Growth = 
+    var CurrentYear = [Total Invoice Amount]
+    var LastYear = [Last Year Invoice Amount]
+    Return 
+    divide(CurrentYear - LastYear, LastYear)
 
--- Year over Year Orders Growth
-Orders YoY% = 
-VAR CY = COUNTROWS(Orders)
-VAR PY = CALCULATE(COUNTROWS(Orders), SAMEPERIODLASTYEAR(Date[Date]))
-RETURN DIVIDE(CY - PY, PY)
-
--- Delay Rate
-Delay Rate =
-DIVIDE(
-    COUNTROWS(FILTER(Orders, Orders[Status] = "Delayed")),
-    COUNTROWS(Orders)
-)
-
--- Dynamic Order Status Chart Title
-Status Chart Title = 
-"Order Status Distribution (" & 
-FORMAT(COUNTROWS(Orders), "#,##0") & 
-" orders)"
-
--- Most Delayed Supplier
-Most Delayed Supplier =
-FIRSTNONBLANK(
-    TOPN(1,
-        VALUES(Supplier[supplier_name]),
-        CALCULATE(
-            COUNTROWS(FILTER(Orders, Orders[Status] = "Delayed"))
-        )
-    ),
-1)
-Dashboard Features
-
-Overview Page
-
-4 KPI cards with conditional formatting (green/red based on performance) Monthly orders trend — 2023 vs 2024 comparison Orders by carrier with YoY delta labels Category contribution clustered bar chart Country and Carrier slicers
-
-Order Details Page (Drill-through from Carrier chart)
-
-Automatically filters to selected carrier KPIs: Total Orders, Avg Order Value, Delay Rate, On-Time Rate Orders over time line chart Order status distribution bar chart Full order-level table with status pills Year slicer for flexible filtering
-
-Delay Analysis Page Total Delayed, Delay Rate, Most Delayed Supplier KPIs Delays by Supplier — sorted bar chart Delays by Category — sorted bar chart Delays by Month — trend line 2023 vs 2024 Supplier, Year, and Country slicers
+Paid Invoices Count = COUNTROWS
+    (FILTER('fact invoices', 
+    'fact invoices'[payment_status] = "Paid"))
 
 **Key Insights From the Data **
 
-Indo Materials Ltd is the most delayed supplier — responsible for 32 out of 156 delayed orders
-Furniture category has the highest delay count (33) despite not being the highest volume category
-FedEx volume dropped significantly in 2024 — worth reviewing SLA compliance
-Overall delay rate sits at 15.6% — above the typical 10% industry benchmark
-Revenue grew 22.4% YoY despite order volume dropping — suggesting a shift toward higher value orders
+90+ day overdue accounts for 85-90% of outstanding balance across all regions — critical collections problem affecting every region equally
+Average DSO of 97 days — significantly above the 30-day industry benchmark, indicating serious collection inefficiency
+Recovery rate at 55.11% — below the 75% target, meaning nearly half of overdue amounts are not being recovered
+335 escalated customers — high escalation volume suggesting frontline collections is struggling
+Credit utilization exceeding 100% detected in high risk customers — customers borrowing beyond their approved limits
+Automotive industry has highest overdue invoice count (153) — industry specific credit risk worth monitoring
+Credit scores barely differentiated by risk category (Low: 584, High: 582, Medium: 575) — suggesting risk categorization may need recalibration
+
+**RLS Implementation**
+
+Dynamic Row Level Security using USERPRINCIPALNAME() and LOOKUPVALUE()
+Regional Manager role filters data by assigned region from Security_RLS_Table
+Tested in Power BI Desktop and published to Service
