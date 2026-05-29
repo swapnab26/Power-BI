@@ -25,7 +25,7 @@ Excel (5 sheets) → Python Cleaning → PostgreSQL -> Power BI -> Service
 
 **Dashboard Preview **
 
-Executive Summary Page
+Executive Summary:
 
 <img width="1057" height="547" alt="image" src="https://github.com/user-attachments/assets/99998d3f-312c-4071-a889-a36075c5b092" />
 
@@ -35,13 +35,42 @@ Waterfall chart — invoice breakdown by payment status
 Line chart — invoice vs collection trend by month
 Dynamic slicers — Year, Region, Risk Category, Customer Segment
 
-High-level KPIs, Average DSO, Total Invoices Amount , Total Collection, Total Outstanding  — all in one view.
-Invoice Summary Page image
+Invoice and Aging Analysis:
+<img width="958" height="538" alt="image" src="https://github.com/user-attachments/assets/5498419d-339d-469a-a005-0de3ae12bb34" />
 
-Drill-through from any carrier bar to see order-level breakdown, delivery performance, and cost metrics.
-Delay Analysis Page image
+100% stacked bar — aging bucket distribution by region (90+ days dominates at 85-90% — critical finding)
+Bar chart — overdue invoices by industry
+Scatter plot — days past due vs outstanding balance by risk category
 
-Supplier-level delay tracking with country and year filters - point exactly where the delays are coming from.
+Collections Performance:
+<img width="976" height="555" alt="image" src="https://github.com/user-attachments/assets/2d8ac7fe-bfc8-4edf-9a9f-3caefd321bd4" />
+
+Gauge chart — average recovery at 55.11% vs 75% target (below benchmark — highlighted in red)
+Donut chart — collection status breakdown
+Line chart — monthly collection trend
+Bar chart — performance by collector
+
+Credit Risk Overview:
+<img width="956" height="542" alt="image" src="https://github.com/user-attachments/assets/e929227f-9ca8-4991-a219-b5a203764146" />
+Bar chart — average credit score by risk level
+Clustered bar — customer distribution by industry and risk category
+Scatter plot — credit score vs credit utilization (utilization exceeding 100% detected in high risk customers)
+
+Customer Drill Through:
+<img width="957" height="537" alt="image" src="https://github.com/user-attachments/assets/b831e12c-df5d-49fc-837e-067ac9371a07" />
+
+Triggered by right clicking any customer
+Full invoice history with conditional formatting on days past due
+Collection transaction history
+Credit score trend over time line chart
+
+Dynamic Analysis:
+<img width="952" height="535" alt="image" src="https://github.com/user-attachments/assets/9ed02408-bb4b-4fa0-aa57-a93fe148eb94" />
+
+Field parameters for metric switching (Invoice Amount, Outstanding, Collection, Overdue %)
+Field parameters for dimension switching (Region, Industry, Segment, Risk Category)
+One dynamic chart replacing multiple static ones
+
 How it works
 
 Raw messy Data - > Python (ETL) -> SQL -> Power BI
